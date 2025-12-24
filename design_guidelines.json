@@ -1,0 +1,161 @@
+{
+  "project_name": "Taqdir - Imam Al-Juwaini Secondary School",
+  "design_philosophy": {
+    "core_concept": "The Zen Study",
+    "emotional_tone": "Calm, Focused, Trustworthy, Encouraging",
+    "visual_style": "Modern Arabic Minimalist with subtle Islamic geometric textures",
+    "theme_mode": "light-only",
+    "rtl_enforcement": "strict"
+  },
+  "typography": {
+    "font_family": {
+      "primary": "IBM Plex Sans Arabic, sans-serif",
+      "secondary": "Cairo, sans-serif",
+      "mono": "IBM Plex Mono, monospace"
+    },
+    "scale": {
+      "h1": "text-4xl font-bold tracking-tight lg:text-5xl",
+      "h2": "text-3xl font-semibold tracking-tight",
+      "h3": "text-2xl font-semibold tracking-tight",
+      "body_large": "text-lg leading-7",
+      "body": "text-base leading-7",
+      "small": "text-sm font-medium leading-none"
+    },
+    "rules": [
+      "Use IBM Plex Sans Arabic for all headings and UI elements.",
+      "Use Cairo for long-form text or exam questions for better readability.",
+      "Ensure line-height is generous (leading-relaxed) to accommodate Arabic diacritics.",
+      "Never use italic styles for Arabic text (it reduces legibility)."
+    ]
+  },
+  "colors": {
+    "palette": {
+      "primary": {
+        "DEFAULT": "#3A7D86",
+        "foreground": "#FFFFFF",
+        "hover": "#2C6169",
+        "light": "#E0F2F4"
+      },
+      "secondary": {
+        "DEFAULT": "#D4A373",
+        "foreground": "#FFFFFF",
+        "hover": "#C29260"
+      },
+      "background": {
+        "DEFAULT": "#F9FAFB",
+        "paper": "#FFFFFF",
+        "subtle": "#F3F4F6"
+      },
+      "text": {
+        "primary": "#1F2937",
+        "secondary": "#4B5563",
+        "muted": "#9CA3AF"
+      },
+      "status": {
+        "success": "#10B981",
+        "warning": "#F59E0B",
+        "error": "#EF4444",
+        "info": "#3B82F6"
+      }
+    },
+    "usage_rules": [
+      "Backgrounds must be Warm White (#F9FAFB) to reduce eye strain.",
+      "Primary color (#3A7D86) is for main actions and active states.",
+      "Secondary color (#D4A373) is for accents, badges, and 'Taqdir' branding.",
+      "Error color (#EF4444) should be used sparingly; prefer soft warnings for timer alerts.",
+      "Text must never be pure black (#000000); use #1F2937."
+    ]
+  },
+  "layout": {
+    "grid_system": {
+      "dashboard": "grid-cols-1 md:grid-cols-12 gap-6",
+      "exam_focus": "max-w-3xl mx-auto"
+    },
+    "spacing": {
+      "container_padding": "p-6 md:p-8",
+      "section_gap": "gap-8",
+      "component_gap": "gap-4"
+    },
+    "rtl_rules": [
+      "Sidebar must be on the RIGHT side.",
+      "Back buttons (if any) point RIGHT.",
+      "Progress bars fill from RIGHT to LEFT.",
+      "Form labels align RIGHT."
+    ]
+  },
+  "components": {
+    "buttons": {
+      "style": "rounded-full px-6 py-2 font-medium transition-all duration-200",
+      "variants": {
+        "primary": "bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm hover:shadow-md",
+        "secondary": "bg-secondary text-secondary-foreground hover:bg-secondary/90",
+        "outline": "border-2 border-primary text-primary hover:bg-primary/10",
+        "ghost": "hover:bg-accent hover:text-accent-foreground"
+      }
+    },
+    "cards": {
+      "style": "bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow duration-200",
+      "exam_card": "p-8 border-t-4 border-t-primary"
+    },
+    "inputs": {
+      "style": "rounded-lg border-gray-200 focus:ring-2 focus:ring-primary/20 focus:border-primary text-right"
+    },
+    "exam_timer": {
+      "style": "fixed top-4 left-4 bg-white/90 backdrop-blur border border-red-100 text-red-600 font-mono text-xl px-4 py-2 rounded-lg shadow-lg z-50",
+      "behavior": "Turns orange at 5 mins, red at 1 min."
+    }
+  },
+  "visual_enhancers": {
+    "textures": {
+      "geometric_pattern": "url('https://images.unsplash.com/photo-1739478469686-b4aab237a38e?crop=entropy&cs=srgb&fm=jpg&q=85') opacity-5"
+    },
+    "shadows": {
+      "soft": "0 4px 20px -2px rgba(0, 0, 0, 0.05)",
+      "floating": "0 10px 40px -10px rgba(0, 0, 0, 0.08)"
+    },
+    "border_radius": {
+      "default": "0.75rem",
+      "large": "1rem",
+      "pill": "9999px"
+    }
+  },
+  "image_urls": {
+    "login_hero": {
+      "url": "https://images.unsplash.com/photo-1712366786881-e080e66fbf7e?crop=entropy&cs=srgb&fm=jpg&q=85",
+      "alt": "Student reading book in calm setting",
+      "usage": "Login page split screen image"
+    },
+    "texture_bg": {
+      "url": "https://images.unsplash.com/photo-1739478469686-b4aab237a38e?crop=entropy&cs=srgb&fm=jpg&q=85",
+      "alt": "Subtle Islamic geometric pattern",
+      "usage": "Sidebar background or page watermark"
+    },
+    "teacher_dashboard": {
+      "url": "https://images.pexels.com/photos/3768126/pexels-photo-3768126.jpeg",
+      "alt": "Teacher using tablet",
+      "usage": "Teacher dashboard welcome banner"
+    }
+  },
+  "accessibility": {
+    "contrast": "Ensure 4.5:1 contrast ratio for all text.",
+    "focus_states": "Visible focus rings (ring-2 ring-primary) are mandatory for keyboard navigation.",
+    "screen_readers": "All icons must have aria-label. Exam timer must announce time remaining at intervals."
+  },
+  "instructions_to_main_agent": [
+    "1. SET DIR='RTL' ON THE HTML TAG. This is non-negotiable.",
+    "2. Install 'lucide-react' for icons.",
+    "3. Use 'date-fns' with 'ar-SA' locale for all dates.",
+    "4. Implement the 'Exam Timer' as a sticky component that persists across scroll.",
+    "5. For the 'Question Management' CRUD, use a clean table layout with 'actions' column on the left.",
+    "6. The 'Student Exam Interface' must disable backward navigation. Use a linear stepper.",
+    "7. Use the provided image URLs for the login page and dashboard banners.",
+    "8. Apply the 'geometric_pattern' texture to the sidebar background with very low opacity (5%)."
+  ],
+  "universal_guidelines": [
+    "Do not use gradients for backgrounds; use solid colors or subtle textures.",
+    "Avoid 'Inter' font; use 'IBM Plex Sans Arabic'.",
+    "All interactive elements must have 'data-testid'.",
+    "Use 'sonner' for toast notifications (positioned top-left for RTL).",
+    "Components must be responsive: Mobile (1 col) -> Tablet (2 cols) -> Desktop (3/4 cols)."
+  ]
+}
