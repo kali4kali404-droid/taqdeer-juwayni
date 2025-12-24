@@ -171,11 +171,12 @@ const ExamMonitoring = () => {
           <p className="text-[#4B5563]">متابعة تقدم الطلاب وإدارة الدرجات</p>
         </div>
         <div className="flex items-center gap-4">
-          <Select value={selectedExam} onValueChange={setSelectedExam}>
+          <Select value={selectedExam || "none"} onValueChange={(value) => setSelectedExam(value === "none" ? "" : value)}>
             <SelectTrigger data-testid="select-exam-monitor" className="w-64">
               <SelectValue placeholder="اختر الاختبار" />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="none">اختر الاختبار</SelectItem>
               {exams.map((exam) => (
                 <SelectItem key={exam.id} value={exam.id}>
                   {exam.title}
