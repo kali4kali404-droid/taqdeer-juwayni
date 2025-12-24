@@ -233,12 +233,12 @@ const QuestionManagement = () => {
                   ))}
                 </SelectContent>
               </Select>
-              <Select value={selectedSection} onValueChange={setSelectedSection}>
+              <Select value={selectedSection || "all"} onValueChange={(value) => setSelectedSection(value === "all" ? "" : value)}>
                 <SelectTrigger data-testid="filter-section-select">
                   <SelectValue placeholder="جميع الأقسام" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">جميع الأقسام</SelectItem>
+                  <SelectItem value="all">جميع الأقسام</SelectItem>
                   {[1, 2, 3, 4, 5].map((num) => (
                     <SelectItem key={num} value={String(num)}>
                       القسم {num}
