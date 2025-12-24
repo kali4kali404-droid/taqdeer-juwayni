@@ -220,12 +220,12 @@ const QuestionManagement = () => {
           <div className="flex items-center gap-4">
             <Filter className="w-5 h-5 text-[#4B5563]" />
             <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Select value={selectedExam} onValueChange={setSelectedExam}>
+              <Select value={selectedExam || "all"} onValueChange={(value) => setSelectedExam(value === "all" ? "" : value)}>
                 <SelectTrigger data-testid="filter-exam-select">
                   <SelectValue placeholder="جميع الاختبارات" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">جميع الاختبارات</SelectItem>
+                  <SelectItem value="all">جميع الاختبارات</SelectItem>
                   {exams.map((exam) => (
                     <SelectItem key={exam.id} value={exam.id}>
                       {exam.title}
