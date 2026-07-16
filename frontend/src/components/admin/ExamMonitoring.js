@@ -29,10 +29,14 @@ import {
 import { toast } from "sonner";
 import {
   getExams,
-  getExamProgress,
+  getGrades, 
   assignGrade,
-  releaseGrade,
   calculateGrade,
+  exportGradesExcel, 
+  exportGradesPDF,   
+  deleteResults,
+  getStudentExam, 
+  getQuestions,   
 } from "@/lib/api";
 import {
   BarChart3,
@@ -40,10 +44,12 @@ import {
   Clock,
   CheckCircle,
   Award,
-  Eye,
   Calculator,
-  Send,
   RefreshCw,
+  FileSpreadsheet, 
+  FileText,        
+  Trash2,
+  Eye, 
 } from "lucide-react";
 
 const ExamMonitoring = () => {
@@ -56,6 +62,12 @@ const ExamMonitoring = () => {
   const [selectedSubmission, setSelectedSubmission] = useState(null);
   const [gradeValue, setGradeValue] = useState("");
 
+  const [showAnswersDialog, setShowAnswersDialog] = useState(false);
+  const [viewingSubmission, setViewingSubmission] = useState(null);
+  const [submissionAnswers, setSubmissionAnswers] = useState([]);
+  const [examQuestions, setExamQuestions] = useState([]);
+  const [loadingAnswers, setLoadingAnswers] = useState(false);
+
   useEffect(() => {
     fetchExams();
   }, []);
@@ -63,7 +75,6 @@ const ExamMonitoring = () => {
   useEffect(() => {
     if (selectedExam) {
       fetchExamProgress();
-      // Auto-refresh every 30 seconds
       const interval = setInterval(fetchExamProgress, 30000);
       return () => clearInterval(interval);
     }
@@ -90,13 +101,32 @@ const ExamMonitoring = () => {
     if (!selectedExam) return;
     setRefreshing(true);
     try {
-      const response = await getExamProgress(selectedExam);
+      const response = await getGrades(selectedExam);
       setExamProgress(response.data);
     } catch (error) {
       console.error("Error fetching exam progress:", error);
       toast.error("حدث خطأ في تحميل بيانات التقدم");
     } finally {
       setRefreshing(false);
+    }
+  };
+
+  const handleViewAnswers = async (submission) => {
+    setViewingSubmission(submission);
+    setLoadingAnswers(true);
+    setShowAnswersDialog(true);
+    try {
+      const sessionRes = await getStudentExam(submission.id);
+      setSubmissionAnswers(sessionRes.data.answers || []);
+
+      const questionsRes = await getQuestions(selectedExam);
+      setExamQuestions(questionsRes.data || []);
+    } catch (error) {
+      console.error("Error fetching student answers:", error);
+      toast.error("حدث خطأ أثناء تحميل إجابات هذا الطالب");
+      setShowAnswersDialog(false);
+    } finally {
+      setLoadingAnswers(false);
     }
   };
 
@@ -137,14 +167,42 @@ const ExamMonitoring = () => {
     }
   };
 
-  const handleReleaseGrade = async (submissionId) => {
+  const handleExportExcel = () => {
+    if (!selectedExam) return;
     try {
-      await releaseGrade(submissionId);
-      toast.success("تم إصدار النتيجة للطالب");
+      exportGradesExcel(selectedExam);
+      toast.success("يتم الآن تحضير وتنزيل ملف Excel للدرجات...");
+    } catch (error) {
+      console.error("Excel Export Error:", error);
+      toast.error("فشل تصدير ملف Excel");
+    }
+  };
+
+  const handleExportPDF = () => {
+    if (!selectedExam) return;
+    try {
+      exportGradesPDF(selectedExam);
+      toast.success("يتم الآن تحضير وتنزيل ملف PDF للدرجات...");
+    } catch (error) {
+      console.error("PDF Export Error:", error);
+      toast.error("فشل تصدير ملف PDF");
+    }
+  };
+
+  const handleDeleteResults = async () => {
+    if (!selectedExam) return;
+    const confirmDelete = window.confirm(
+      "تنبيه هام جداً:\nهل أنت متأكد من رغبتك في حذف جميع نتائج الطلاب لهذا الاختبار بالكامل؟\nهذا الإجراء سيحذف كافة السجلات السابقة ولا يمكن التراجع عنه!"
+    );
+    if (!confirmDelete) return;
+
+    try {
+      await deleteResults(selectedExam);
+      toast.success("تم حذف النتائج السابقة بنجاح وتصفير السجلات.");
       fetchExamProgress();
     } catch (error) {
-      console.error("Error releasing grade:", error);
-      toast.error("حدث خطأ في إصدار النتيجة");
+      console.error("Delete Results Error:", error);
+      toast.error("حدث خطأ أثناء محاولة حذف النتائج");
     }
   };
 
@@ -164,13 +222,13 @@ const ExamMonitoring = () => {
     : 0;
 
   return (
-    <div className="animate-fade-in">
-      <div className="flex items-center justify-between mb-6">
+    <div className="animate-fade-in" dir="rtl">
+      <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
         <div>
           <h1 className="text-2xl font-bold text-[#1F2937]">مراقبة الاختبارات</h1>
           <p className="text-[#4B5563]">متابعة تقدم الطلاب وإدارة الدرجات</p>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex flex-wrap items-center gap-3">
           <Select value={selectedExam || "none"} onValueChange={(value) => setSelectedExam(value === "none" ? "" : value)}>
             <SelectTrigger data-testid="select-exam-monitor" className="w-64">
               <SelectValue placeholder="اختر الاختبار" />
@@ -188,7 +246,7 @@ const ExamMonitoring = () => {
             data-testid="refresh-progress-btn"
             variant="outline"
             onClick={fetchExamProgress}
-            disabled={refreshing}
+            disabled={refreshing || !selectedExam}
           >
             <RefreshCw className={`w-4 h-4 ml-2 ${refreshing ? "animate-spin" : ""}`} />
             تحديث
@@ -200,12 +258,41 @@ const ExamMonitoring = () => {
         <Card>
           <CardContent className="py-12 text-center">
             <BarChart3 className="w-12 h-12 text-[#9CA3AF] mx-auto mb-4" />
-            <p className="text-[#4B5563]">اختر اختباراً لعرض التقدم</p>
+            <p className="text-[#4B5563]">اختر اختباراً لعرض التقدم وإدارة النتائج</p>
           </CardContent>
         </Card>
       ) : (
         <>
-          {/* Stats Cards */}
+          {/* قسم الإجراءات الإدارية */}
+          <div className="flex flex-wrap gap-3 mb-6 p-4 bg-gray-50 border rounded-lg items-center">
+            <span className="text-sm font-semibold text-[#1F2937] ml-2">أدوات الإدارة والرصد:</span>
+            <Button
+              variant="outline"
+              onClick={handleExportExcel}
+              className="border-[#10B981] text-[#10B981] hover:bg-[#D1FAE5] hover:text-[#047857]"
+            >
+              <FileSpreadsheet className="w-4 h-4 ml-2" />
+              تصدير كـ Excel
+            </Button>
+            <Button
+              variant="outline"
+              onClick={handleExportPDF}
+              className="border-[#EF4444] text-[#EF4444] hover:bg-[#FEE2E2] hover:text-[#B91C1C]"
+            >
+              <FileText className="w-4 h-4 ml-2" />
+              تصدير كـ PDF
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDeleteResults}
+              className="bg-red-600 hover:bg-red-700 text-white mr-auto"
+            >
+              <Trash2 className="w-4 h-4 ml-2" />
+              حذف سجلات ونتائج الاختبار الحالي
+            </Button>
+          </div>
+
+          {/* بطاقات الإحصائيات */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
             <Card>
               <CardContent className="pt-6">
@@ -272,7 +359,7 @@ const ExamMonitoring = () => {
             </Card>
           </div>
 
-          {/* Progress Bar */}
+          {/* شريط الإكمال */}
           <Card className="mb-6">
             <CardHeader>
               <CardTitle className="text-lg">نسبة الإكمال</CardTitle>
@@ -288,7 +375,7 @@ const ExamMonitoring = () => {
             </CardContent>
           </Card>
 
-          {/* Submissions Table */}
+          {/* جدول التفاصيل والمشاركين */}
           <Card>
             <CardHeader>
               <CardTitle className="text-lg">تفاصيل المشاركين</CardTitle>
@@ -296,17 +383,19 @@ const ExamMonitoring = () => {
             <CardContent>
               {!examProgress?.submissions?.length ? (
                 <div className="text-center py-8 text-[#4B5563]">
-                  لا توجد مشاركات حتى الآن
+                  لا توجد مشاركات مسجلة لهذا الاختبار حتى الآن.
                 </div>
               ) : (
                 <Table className="table-rtl">
                   <TableHeader>
                     <TableRow>
                       <TableHead className="text-right">اسم الطالب</TableHead>
+                      <TableHead className="text-right">المدرسة</TableHead>
+                      <TableHead className="text-right">المرحلة</TableHead>
+                      <TableHead className="text-right">الفصل</TableHead>
                       <TableHead className="text-right">القسم الحالي</TableHead>
                       <TableHead className="text-right">الحالة</TableHead>
                       <TableHead className="text-right">الدرجة</TableHead>
-                      <TableHead className="text-right">النتيجة</TableHead>
                       <TableHead className="text-left">الإجراءات</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -316,6 +405,9 @@ const ExamMonitoring = () => {
                         <TableCell className="font-medium">
                           {submission.student_name}
                         </TableCell>
+                        <TableCell>{submission.school_name || "ثانوية الإمام الجويني"}</TableCell>
+                        <TableCell>{submission.grade || "-"}</TableCell>
+                        <TableCell>{submission.class_name || "-"}</TableCell>
                         <TableCell>
                           {submission.status === "completed"
                             ? "مكتمل"
@@ -332,14 +424,18 @@ const ExamMonitoring = () => {
                           )}
                         </TableCell>
                         <TableCell>
-                          {submission.grade_released ? (
-                            <Badge className="bg-[#D1FAE5] text-[#10B981]">صدرت</Badge>
-                          ) : (
-                            <Badge className="bg-[#F3F4F6] text-[#4B5563]">لم تصدر</Badge>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-1">
+                          <div className="flex items-center gap-1 justify-start">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleViewAnswers(submission)}
+                              title="عرض إجابات الطالب التفصيلية"
+                              className="text-[#3A7D86]"
+                            >
+                              <Eye className="w-4 h-4 ml-1" />
+                              عرض الإجابات
+                            </Button>
+
                             {submission.status === "completed" && (
                               <>
                                 <Button
@@ -349,29 +445,19 @@ const ExamMonitoring = () => {
                                   onClick={() => handleCalculateGrade(submission)}
                                   title="حساب الدرجة آلياً"
                                 >
-                                  <Calculator className="w-4 h-4" />
+                                  <Calculator className="w-4 h-4 ml-1" />
+                                  حساب الدرجة
                                 </Button>
                                 <Button
                                   data-testid={`assign-grade-${submission.id}`}
                                   variant="ghost"
                                   size="sm"
                                   onClick={() => handleOpenGradeDialog(submission)}
-                                  title="تعيين الدرجة يدوياً"
+                                  title="تعديل أو تعيين الدرجة يدوياً"
                                 >
-                                  <Award className="w-4 h-4" />
+                                  <Award className="w-4 h-4 ml-1" />
+                                  رصد يدوي
                                 </Button>
-                                {submission.score !== null && !submission.grade_released && (
-                                  <Button
-                                    data-testid={`release-grade-${submission.id}`}
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => handleReleaseGrade(submission.id)}
-                                    title="إصدار النتيجة"
-                                    className="text-[#10B981]"
-                                  >
-                                    <Send className="w-4 h-4" />
-                                  </Button>
-                                )}
                               </>
                             )}
                           </div>
@@ -386,18 +472,115 @@ const ExamMonitoring = () => {
         </>
       )}
 
-      {/* Grade Dialog */}
+      {/* نافذة عرض إجابات الطالب بالتفصيل */}
+      <Dialog open={showAnswersDialog} onOpenChange={setShowAnswersDialog}>
+        <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto" dir="rtl">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold text-[#1F2937] border-b pb-2">
+              عرض تفاصيل إجابات الطالب: {viewingSubmission?.student_name}
+            </DialogTitle>
+          </DialogHeader>
+          
+          {loadingAnswers ? (
+            <div className="text-center py-12 text-[#4B5563]">جاري تحميل الأسئلة والإجابات...</div>
+          ) : examQuestions.length === 0 ? (
+            <div className="text-center py-12 text-[#4B5563]">لا توجد أسئلة مسجلة في هذا الاختبار.</div>
+          ) : (
+            <div className="space-y-6 py-4">
+              {examQuestions.map((question, qIdx) => {
+                const studentAnswer = submissionAnswers.find(a => a.question_id === question.id);
+                const selectedOptId = studentAnswer?.selected_option_id;
+                
+                const isAnswered = !!selectedOptId;
+                const selectedOpt = question.options?.find(o => o.id === selectedOptId);
+                const isCorrect = selectedOpt?.is_correct === true;
+
+                return (
+                  <div key={question.id} className="p-4 border rounded-lg bg-gray-50/50 space-y-3">
+                    <div className="flex justify-between items-start">
+                      <span className="font-semibold text-[#1F2937]">
+                        سؤال {qIdx + 1}: <span className="text-gray-500 font-normal">({question.points || 1} درجات)</span>
+                      </span>
+                      <span>
+                        {!isAnswered ? (
+                          <Badge className="bg-gray-100 text-gray-500 border-gray-200">⚠️ لم يحل السؤال (صفر)</Badge>
+                        ) : isCorrect ? (
+                          <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200">✅ إجابة صحيحة</Badge>
+                        ) : (
+                          <Badge className="bg-rose-100 text-red-700 border-rose-200">❌ إجابة خاطئة</Badge>
+                        )}
+                      </span>
+                    </div>
+                    
+                    <p className="text-md text-[#1F2937] font-medium pr-2">{question.text}</p>
+                    
+                    {question.image && (
+                      <div className="text-center my-2">
+                        <img 
+                          src={question.image} 
+                          alt="مرفق السؤال" 
+                          className="max-h-40 rounded border object-contain bg-white p-1"
+                        />
+                      </div>
+                    )}
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 pt-2">
+                      {question.options?.map((option, oIdx) => {
+                        const isSelected = option.id === selectedOptId;
+                        const isOptionCorrect = option.is_correct === true;
+                        
+                        let borderClass = "border-gray-200 bg-white";
+                        if (isSelected) {
+                          borderClass = isOptionCorrect 
+                            ? "border-emerald-500 bg-emerald-50 text-emerald-800" 
+                            : "border-red-400 bg-rose-50 text-red-800";
+                        } else if (isOptionCorrect) {
+                          borderClass = "border-emerald-300 bg-emerald-50/40 text-emerald-800";
+                        }
+
+                        return (
+                          <div 
+                            key={option.id} 
+                            className={`flex items-center gap-2 p-2.5 rounded-lg border text-sm transition-all ${borderClass}`}
+                          >
+                            <div className={`w-6 h-6 rounded-full flex items-center justify-center font-bold text-xs ${
+                              isSelected ? "bg-[#3A7D86] text-white" : "bg-gray-100 text-gray-600"
+                            }`}>
+                              {String.fromCharCode(65 + oIdx)}
+                            </div>
+                            <span className="flex-1 font-medium">{option.text}</span>
+                            {isOptionCorrect && <span className="text-xs font-bold text-emerald-600">(الإجابة الصحيحة)</span>}
+                            {isSelected && !isOptionCorrect && <span className="text-xs font-bold text-red-600">(إجابة الطالب)</span>}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          
+          <DialogFooter className="justify-start">
+            <Button variant="outline" onClick={() => setShowAnswersDialog(false)}>
+              إغلاق النافذة
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* نافذة رصد الدرجة */}
       <Dialog open={showGradeDialog} onOpenChange={setShowGradeDialog}>
         <DialogContent dir="rtl">
           <DialogHeader>
-            <DialogTitle>تعيين الدرجة</DialogTitle>
+            <DialogTitle>رصد وتعديل الدرجة</DialogTitle>
           </DialogHeader>
           <div className="py-4">
             <p className="text-[#4B5563] mb-4">
               الطالب: <strong>{selectedSubmission?.student_name}</strong>
             </p>
             <div className="space-y-2">
-              <label className="text-sm font-medium">الدرجة (من 100)</label>
+              <label className="text-sm font-medium">الدرجة النهائية (من 100)</label>
               <Input
                 type="number"
                 data-testid="grade-input"
@@ -409,14 +592,14 @@ const ExamMonitoring = () => {
               />
             </div>
           </div>
-          <DialogFooter className="gap-2">
+          <DialogFooter className="gap-2 justify-start">
             <Button variant="outline" onClick={() => setShowGradeDialog(false)}>
               إلغاء
             </Button>
             <Button
               data-testid="confirm-grade-btn"
               onClick={handleAssignGrade}
-              className="bg-[#3A7D86] hover:bg-[#2C6169]"
+              className="bg-[#3A7D86] hover:bg-[#2C6169] text-white"
             >
               حفظ الدرجة
             </Button>

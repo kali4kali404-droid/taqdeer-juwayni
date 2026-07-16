@@ -2,6 +2,7 @@ import "@/App.css";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+
 import LoginPage from "@/pages/LoginPage";
 import AdminDashboard from "@/pages/AdminDashboard";
 import TeacherDashboard from "@/pages/TeacherDashboard";
@@ -10,20 +11,21 @@ import ExamInstructions from "@/pages/ExamInstructions";
 import ExamInterface from "@/pages/ExamInterface";
 import ExamCompletion from "@/pages/ExamCompletion";
 
+// 🟢 NEW PAGE (Student Code Admin)
+import AdminStudentCodes from "@/pages/AdminStudentCodes";
+
 const ProtectedRoute = ({ children, allowedRoles }) => {
   const { user, loading } = useAuth();
 
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-lg text-muted-foreground">جاري التحميل...</div>
+        <div>جاري التحميل...</div>
       </div>
     );
   }
 
-  if (!user) {
-    return <Navigate to="/login" replace />;
-  }
+  if (!user) return <Navigate to="/login" replace />;
 
   if (allowedRoles && !allowedRoles.includes(user.role)) {
     return <Navigate to="/" replace />;
@@ -38,36 +40,30 @@ const RoleBasedRedirect = () => {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-lg text-muted-foreground">جاري التحميل...</div>
+        <div>جاري التحميل...</div>
       </div>
     );
   }
 
-  if (!user) {
-    return <Navigate to="/login" replace />;
-  }
+  if (!user) return <Navigate to="/login" replace />;
 
-  switch (user.role) {
-    case "admin":
-      return <Navigate to="/admin" replace />;
-    case "teacher":
-      return <Navigate to="/teacher" replace />;
-    case "student":
-      return <Navigate to="/student" replace />;
-    default:
-      return <Navigate to="/login" replace />;
-  }
+  if (user.role === "admin") return <Navigate to="/admin" replace />;
+  if (user.role === "teacher") return <Navigate to="/teacher" replace />;
+  if (user.role === "student") return <Navigate to="/student" replace />;
+
+  return <Navigate to="/login" replace />;
 };
 
 function App() {
   return (
     <AuthProvider>
-      <div className="app-container" dir="rtl">
+      <div dir="rtl">
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<RoleBasedRedirect />} />
             <Route path="/login" element={<LoginPage />} />
-            
+
+            {/* ADMIN */}
             <Route
               path="/admin/*"
               element={
@@ -76,7 +72,18 @@ function App() {
                 </ProtectedRoute>
               }
             />
-            
+
+            {/* 🟢 NEW: Student Codes Page */}
+            <Route
+              path="/admin/codes"
+              element={
+                <ProtectedRoute allowedRoles={["admin"]}>
+                  <AdminStudentCodes />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* TEACHER */}
             <Route
               path="/teacher/*"
               element={
@@ -85,7 +92,8 @@ function App() {
                 </ProtectedRoute>
               }
             />
-            
+
+            {/* STUDENT */}
             <Route
               path="/student/*"
               element={
@@ -94,7 +102,8 @@ function App() {
                 </ProtectedRoute>
               }
             />
-            
+
+            {/* EXAMS */}
             <Route
               path="/exam/:examId/instructions"
               element={
@@ -103,7 +112,7 @@ function App() {
                 </ProtectedRoute>
               }
             />
-            
+
             <Route
               path="/exam/:studentExamId/take"
               element={
@@ -112,7 +121,7 @@ function App() {
                 </ProtectedRoute>
               }
             />
-            
+
             <Route
               path="/exam/completed"
               element={
@@ -123,7 +132,8 @@ function App() {
             />
           </Routes>
         </BrowserRouter>
-        <Toaster position="top-left" dir="rtl" />
+
+        <Toaster position="top-left" />
       </div>
     </AuthProvider>
   );

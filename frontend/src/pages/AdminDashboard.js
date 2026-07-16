@@ -8,6 +8,7 @@ import {
   getDashboardStats,
   getExams,
   getUsers,
+  superResetSystem, // استيراد دالة التصفير الكلي المضافة 🚀
 } from "@/lib/api";
 import {
   LayoutDashboard,
@@ -20,23 +21,29 @@ import {
   CheckCircle,
   Clock,
   BarChart3,
+  Key, 
+  Trash2, // استيراد أيقونة سلة المهملات المضافة 🚀
 } from "lucide-react";
 import ExamManagement from "@/components/admin/ExamManagement";
 import QuestionManagement from "@/components/admin/QuestionManagement";
 import UserManagement from "@/components/admin/UserManagement";
 import ExamMonitoring from "@/components/admin/ExamMonitoring";
+import CodeManagement from "./CodeManagement"; // استدعاء ملف الأكواد المجاور له في نفس المجلد
 
 const AdminDashboard = () => {
-  const { user, logout } = useAuth();
+  const { user, token, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
-
+ 
+  // تحديث الإحصائيات تلقائياً ولحظياً عند الدخول لتبويب "لوحة التحكم" لقراءة الحذف والتصفير فوراً
   useEffect(() => {
-    fetchStats();
-  }, []);
-
+    if (token && location.pathname === "/admin") {
+      fetchStats();
+    }
+  }, [token, location.pathname]);
+ 
   const fetchStats = async () => {
     try {
       const response = await getDashboardStats();
@@ -47,35 +54,58 @@ const AdminDashboard = () => {
       setLoading(false);
     }
   };
-
+ 
   const handleLogout = () => {
     logout();
     navigate("/login");
     toast.success("تم تسجيل الخروج بنجاح");
   };
 
+  // معالج الضغط للتصفير الكلي مع نافذة تأكيد آمنة بخطوتين 🚀
+  const handleSuperReset = async () => {
+    const confirm1 = window.confirm(
+      "تنبيه خطير وحساس جداً:\nهل أنت متأكد من رغبتك في تصفير النظام واللوحة بالكامل للدفعة الجديدة؟\nسيتم مسح كافة الامتحانات، والأسئلة، وأكواد الطلاب، وجلسات الطلاب، وحسابات المعلمين بالكامل!\n(هذا الإجراء لا يمكن التراجع عنه!)"
+    );
+    if (!confirm1) return;
+
+    const confirm2 = window.confirm(
+      "تأكيد أخير للمسح الكلي:\nاضغط موافق للمسح الكامل والنهائي لكافة السجلات (سيتم استثناء حسابك الإشرافي n.vf11 بالملي)."
+    );
+    if (!confirm2) return;
+
+    try {
+      const response = await superResetSystem();
+      toast.success(response.data.message || "تم تصفير النظام واللوحة بنجاح للبدء من جديد!");
+      fetchStats(); // لتحديث العدادات والواجهة لتصبح 0 تلقائياً فوراً
+    } catch (error) {
+      console.error("Super reset error:", error);
+      toast.error("حدث خطأ أثناء محاولة التصفير الكلي");
+    }
+  };
+ 
   const navItems = [
     { path: "/admin", label: "لوحة التحكم", icon: LayoutDashboard },
     { path: "/admin/exams", label: "إدارة الاختبارات", icon: FileText },
     { path: "/admin/questions", label: "إدارة الأسئلة", icon: HelpCircle },
     { path: "/admin/users", label: "إدارة المستخدمين", icon: Users },
     { path: "/admin/monitoring", label: "مراقبة الاختبارات", icon: BarChart3 },
+    { path: "/admin/codes", label: "إدارة الأكواد", icon: Key }, // خيار إدارة أكواد الدخول الجديد في القائمة الجانبية
   ];
-
+ 
   const isActive = (path) => {
     if (path === "/admin") {
       return location.pathname === "/admin";
     }
     return location.pathname.startsWith(path);
   };
-
+ 
   const DashboardHome = () => (
     <div className="animate-fade-in">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-[#1F2937]">مرحباً، {user?.full_name}</h1>
-        <p className="text-[#4B5563] mt-1">لوحة تحكم المشرف العام</p>
+      <div className="mb-8 border-b pb-4">
+        <h1 className="text-3xl font-bold text-[#1F2937]">أهلاً بك يا قائد التميز، {user?.full_name} 💐</h1>
+        <p className="text-[#4B5563] mt-1">نسعد بجهودكم المباركة في إدارة وضبط اختبارات القدرات والتحصيلي لطلابنا الكرام.</p>
       </div>
-
+ 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <Card className="stats-card border-t-4 border-t-[#3A7D86]">
@@ -91,7 +121,7 @@ const AdminDashboard = () => {
             </div>
           </CardContent>
         </Card>
-
+ 
         <Card className="stats-card border-t-4 border-t-[#D4A373]">
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
@@ -105,12 +135,12 @@ const AdminDashboard = () => {
             </div>
           </CardContent>
         </Card>
-
+ 
         <Card className="stats-card border-t-4 border-t-[#10B981]">
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-[#4B5563]">الطلاب</p>
+                <p className="text-sm text-[#4B5563]">الطلاب المشاركون</p>
                 <p className="text-3xl font-bold text-[#1F2937]">{stats?.total_students || 0}</p>
               </div>
               <div className="w-12 h-12 rounded-full bg-[#D1FAE5] flex items-center justify-center">
@@ -119,7 +149,7 @@ const AdminDashboard = () => {
             </div>
           </CardContent>
         </Card>
-
+ 
         <Card className="stats-card border-t-4 border-t-[#3B82F6]">
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
@@ -134,7 +164,7 @@ const AdminDashboard = () => {
           </CardContent>
         </Card>
       </div>
-
+ 
       {/* Quick Actions */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
@@ -145,7 +175,7 @@ const AdminDashboard = () => {
             <Button
               data-testid="quick-create-exam-btn"
               onClick={() => navigate("/admin/exams")}
-              className="w-full justify-start bg-[#3A7D86] hover:bg-[#2C6169]"
+              className="w-full justify-start bg-[#3A7D86] hover:bg-[#2C6169] text-white"
             >
               <FileText className="w-5 h-5 ml-2" />
               إنشاء اختبار جديد
@@ -157,7 +187,7 @@ const AdminDashboard = () => {
               className="w-full justify-start border-[#3A7D86] text-[#3A7D86] hover:bg-[#E0F2F4]"
             >
               <HelpCircle className="w-5 h-5 ml-2" />
-              إضافة أسئلة
+              إضافة أسئلة جديدة
             </Button>
             <Button
               data-testid="quick-add-user-btn"
@@ -166,11 +196,28 @@ const AdminDashboard = () => {
               className="w-full justify-start border-[#D4A373] text-[#D4A373] hover:bg-[#FDF3E7]"
             >
               <Users className="w-5 h-5 ml-2" />
-              إضافة مستخدم
+              إضافة مستخدم جديد
+            </Button>
+            <Button
+              data-testid="quick-manage-codes-btn"
+              onClick={() => navigate("/admin/codes")}
+              variant="outline"
+              className="w-full justify-start border-[#7C3AED] text-[#7C3AED] hover:bg-[#EDE9FE]"
+            >
+              <Key className="w-5 h-5 ml-2" />
+              إدارة وتوليد أكواد الدخول
+            </Button>
+            {/* زر التصفير الكلي المضاف 🚀 */}
+            <Button
+              onClick={handleSuperReset}
+              className="w-full justify-start bg-red-600 hover:bg-red-700 text-white font-bold"
+            >
+              <Trash2 className="w-5 h-5 ml-2" />
+              تصفير النظام بالكامل  
             </Button>
           </CardContent>
         </Card>
-
+ 
         <Card>
           <CardHeader>
             <CardTitle className="text-lg font-semibold text-[#1F2937]">ملخص النشاط</CardTitle>
@@ -204,9 +251,9 @@ const AdminDashboard = () => {
       </div>
     </div>
   );
-
+ 
   return (
-    <div className="dashboard-layout">
+    <div className="dashboard-layout" dir="rtl">
       {/* Sidebar */}
       <aside className="dashboard-sidebar">
         <div className="flex items-center gap-3 mb-8">
@@ -214,11 +261,11 @@ const AdminDashboard = () => {
             <GraduationCap className="w-6 h-6" />
           </div>
           <div>
-            <h2 className="font-bold text-lg">تقدير</h2>
+            <h2 className="font-bold text-lg">منصة ثانوية الإمام الجويني</h2>
             <p className="text-sm opacity-80">لوحة المشرف</p>
           </div>
         </div>
-
+ 
         <nav className="flex-1 space-y-1">
           {navItems.map((item) => (
             <button
@@ -227,12 +274,12 @@ const AdminDashboard = () => {
               onClick={() => navigate(item.path)}
               className={`nav-item w-full ${isActive(item.path) ? "active" : ""}`}
             >
-              <item.icon className="w-5 h-5" />
+              <item.icon className="w-5 h-5 ml-2" />
               <span>{item.label}</span>
             </button>
           ))}
         </nav>
-
+ 
         <div className="pt-4 border-t border-white/20">
           <div className="flex items-center gap-3 mb-4 px-2">
             <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
@@ -248,12 +295,12 @@ const AdminDashboard = () => {
             onClick={handleLogout}
             className="nav-item w-full text-red-200 hover:bg-red-500/20"
           >
-            <LogOut className="w-5 h-5" />
+            <LogOut className="w-5 h-5 ml-2" />
             <span>تسجيل الخروج</span>
           </button>
         </div>
       </aside>
-
+ 
       {/* Main Content */}
       <main className="dashboard-content">
         <Routes>
@@ -262,10 +309,11 @@ const AdminDashboard = () => {
           <Route path="questions/*" element={<QuestionManagement />} />
           <Route path="users/*" element={<UserManagement />} />
           <Route path="monitoring/*" element={<ExamMonitoring />} />
+          <Route path="codes/*" element={<CodeManagement />} /> {/* ربط مسار الأكواد من المجلد المجاور */}
         </Routes>
       </main>
     </div>
   );
 };
-
+ 
 export default AdminDashboard;

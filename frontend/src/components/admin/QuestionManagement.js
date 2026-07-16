@@ -35,6 +35,7 @@ import {
   createQuestion,
   updateQuestion,
   deleteQuestion,
+  deleteAllQuestions, // استيراد دالة حذف الكل الجديدة
 } from "@/lib/api";
 import { Plus, Pencil, Trash2, HelpCircle, Filter } from "lucide-react";
 
@@ -51,6 +52,8 @@ const QuestionManagement = () => {
     exam_id: "",
     section_number: 1,
     points: 1,
+    image: "", 
+    hint: "",  
     options: [
       { id: crypto.randomUUID(), text: "", is_correct: false },
       { id: crypto.randomUUID(), text: "", is_correct: false },
@@ -64,17 +67,13 @@ const QuestionManagement = () => {
   }, []);
 
   useEffect(() => {
-    if (selectedExam || selectedSection) {
-      fetchQuestions();
-    } else {
-      fetchQuestions();
-    }
+    fetchQuestions();
   }, [selectedExam, selectedSection]);
 
   const fetchExams = async () => {
     try {
       const response = await getExams();
-      setExams(response.data);
+      setExams(response.data || []);
     } catch (error) {
       console.error("Error fetching exams:", error);
     }
@@ -87,13 +86,33 @@ const QuestionManagement = () => {
         selectedExam || undefined,
         selectedSection || undefined
       );
-      setQuestions(response.data);
+      setQuestions(response.data || []);
     } catch (error) {
       console.error("Error fetching questions:", error);
       toast.error("حدث خطأ في تحميل الأسئلة");
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleImageUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("حجم الصورة كبير جداً، يرجى رفع صورة أقل من 2 ميغابايت لضمان سرعة التحميل");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setFormData((prev) => ({ ...prev, image: reader.result }));
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemoveImage = () => {
+    setFormData((prev) => ({ ...prev, image: "" }));
   };
 
   const handleOpenForm = (question = null) => {
@@ -104,6 +123,8 @@ const QuestionManagement = () => {
         exam_id: question.exam_id,
         section_number: question.section_number,
         points: question.points || 1,
+        image: question.image || "", 
+        hint: question.hint || "",   
         options: question.options || [
           { id: crypto.randomUUID(), text: "", is_correct: false },
           { id: crypto.randomUUID(), text: "", is_correct: false },
@@ -118,6 +139,8 @@ const QuestionManagement = () => {
         exam_id: selectedExam || "",
         section_number: selectedSection ? parseInt(selectedSection) : 1,
         points: 1,
+        image: "",
+        hint: "",
         options: [
           { id: crypto.randomUUID(), text: "", is_correct: false },
           { id: crypto.randomUUID(), text: "", is_correct: false },
@@ -132,14 +155,12 @@ const QuestionManagement = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    // Validate at least one correct option
     const hasCorrect = formData.options.some((opt) => opt.is_correct);
     if (!hasCorrect) {
       toast.error("الرجاء تحديد إجابة صحيحة واحدة على الأقل");
       return;
     }
 
-    // Validate all options have text
     const emptyOptions = formData.options.filter((opt) => !opt.text.trim());
     if (emptyOptions.length > 0) {
       toast.error("الرجاء ملء جميع خيارات الإجابة");
@@ -153,10 +174,12 @@ const QuestionManagement = () => {
           section_number: formData.section_number,
           points: formData.points,
           options: formData.options,
+          image: formData.image, 
+          hint: formData.hint,   
         });
         toast.success("تم تحديث السؤال بنجاح");
       } else {
-        await createQuestion(formData);
+        await createQuestion(formData); 
         toast.success("تم إنشاء السؤال بنجاح");
       }
       setShowForm(false);
@@ -179,10 +202,27 @@ const QuestionManagement = () => {
     }
   };
 
+  // 🚀 ميزة حذف جميع الأسئلة دفعة واحدة مع نافذة تأكيد آمنة
+  const handleDeleteAllQuestions = async () => {
+    const confirmMessage = selectedExam
+      ? "تنبيه هام جداً:\nهل أنت متأكد من رغبتك في حذف جميع الأسئلة التابعة لهذا الاختبار المحدد فقط بالكامل؟\nلا يمكن التراجع عن هذا الإجراء!"
+      : "تنبيه خطير جداً:\nهل أنت متأكد من رغبتك في حذف جميع الأسئلة في جميع الاختبارات بالكامل؟\nهذا الإجراء سيقوم بتصفير بنك الأسئلة بالكامل ولا يمكن التراجع عنه!";
+
+    if (!window.confirm(confirmMessage)) return;
+
+    try {
+      await deleteAllQuestions(selectedExam || null);
+      toast.success("تم حذف الأسئلة بنجاح وتصفير السجلات.");
+      fetchQuestions();
+    } catch (error) {
+      console.error("Error deleting all questions:", error);
+      toast.error("حدث خطأ أثناء محاولة حذف الأسئلة");
+    }
+  };
+
   const handleOptionChange = (index, field, value) => {
     const newOptions = [...formData.options];
     if (field === "is_correct" && value === true) {
-      // Only one correct answer
       newOptions.forEach((opt, i) => {
         opt.is_correct = i === index;
       });
@@ -198,20 +238,33 @@ const QuestionManagement = () => {
   };
 
   return (
-    <div className="animate-fade-in">
+    <div className="animate-fade-in" dir="rtl">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-[#1F2937]">إدارة الأسئلة</h1>
           <p className="text-[#4B5563]">إضافة وتعديل وحذف الأسئلة</p>
         </div>
-        <Button
-          data-testid="create-question-btn"
-          onClick={() => handleOpenForm()}
-          className="bg-[#3A7D86] hover:bg-[#2C6169]"
-        >
-          <Plus className="w-5 h-5 ml-2" />
-          إضافة سؤال جديد
-        </Button>
+        <div className="flex gap-2">
+          {/* زر حذف الأسئلة الكلي المضاف حديثاً 🚀 */}
+          <Button
+            variant="destructive"
+            onClick={handleDeleteAllQuestions}
+            disabled={questions.length === 0}
+            className="bg-red-600 hover:bg-red-700 text-white"
+          >
+            <Trash2 className="w-4 h-4 ml-2" />
+            {selectedExam ? "حذف أسئلة هذا الاختبار" : "حذف جميع الأسئلة"}
+          </Button>
+
+          <Button
+            data-testid="create-question-btn"
+            onClick={() => handleOpenForm()}
+            className="bg-[#3A7D86] hover:bg-[#2C6169] text-white"
+          >
+            <Plus className="w-5 h-5 ml-2" />
+            إضافة سؤال جديد
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -260,7 +313,7 @@ const QuestionManagement = () => {
             <p className="text-[#4B5563]">لا توجد أسئلة حالياً</p>
             <Button
               onClick={() => handleOpenForm()}
-              className="mt-4 bg-[#3A7D86] hover:bg-[#2C6169]"
+              className="mt-4 bg-[#3A7D86] hover:bg-[#2C6169] text-white"
             >
               إضافة أول سؤال
             </Button>
@@ -282,7 +335,23 @@ const QuestionManagement = () => {
               {questions.map((question) => (
                 <TableRow key={question.id}>
                   <TableCell className="font-medium">
-                    <p className="truncate max-w-md">{question.text}</p>
+                    <div className="flex items-center gap-3">
+                      {question.image && (
+                        <img
+                          src={question.image}
+                          alt="مرفق السؤال"
+                          className="h-10 w-10 object-cover rounded border bg-white shrink-0"
+                        />
+                      )}
+                      <div>
+                        <p className="truncate max-w-md font-semibold text-[#1F2937]">{question.text}</p>
+                        {question.hint && (
+                          <span className="text-xs text-amber-600 bg-amber-50 px-2 py-0.5 rounded border border-amber-200 inline-block mt-1 font-normal">
+                            💡 المساعد: {question.hint}
+                          </span>
+                        )}
+                      </div>
+                    </div>
                   </TableCell>
                   <TableCell>
                     <Badge variant="outline">{getExamTitle(question.exam_id)}</Badge>
@@ -390,6 +459,50 @@ const QuestionManagement = () => {
                 />
               </div>
 
+              {/* قسم رفع الصورة المرفقة */}
+              <div className="space-y-2">
+                <Label>صورة مرفقة مع السؤال (اختياري)</Label>
+                <div className="flex items-center gap-4 border p-4 rounded-lg bg-gray-50">
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                    className="flex-1 cursor-pointer bg-white"
+                  />
+                  {formData.image && (
+                    <div className="relative shrink-0 border rounded bg-white p-1">
+                      <img
+                        src={formData.image}
+                        alt="معاينة المرفق"
+                        className="h-16 w-16 object-cover rounded"
+                      />
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="icon"
+                        onClick={handleRemoveImage}
+                        className="absolute -top-2 -right-2 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs"
+                      >
+                        ×
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* قسم تلميح المساعدة */}
+              <div className="space-y-2">
+                <Label htmlFor="questionHint">تلميح المساعدة للطلاب (أيقونة اللمبة 💡 - اختياري)</Label>
+                <Input
+                  id="questionHint"
+                  value={formData.hint}
+                  onChange={(e) =>
+                    setFormData({ ...formData, hint: e.target.value })
+                  }
+                  placeholder="اكتب تلميحاً يظهر للطالب لمساعدته عند الضغط على اللمبة..."
+                />
+              </div>
+
               <div className="space-y-2">
                 <Label>الدرجة</Label>
                 <Input
@@ -449,7 +562,7 @@ const QuestionManagement = () => {
                 </div>
               </div>
             </div>
-            <DialogFooter className="gap-2">
+            <DialogFooter className="gap-2 justify-start">
               <Button
                 type="button"
                 variant="outline"
@@ -460,7 +573,7 @@ const QuestionManagement = () => {
               <Button
                 type="submit"
                 data-testid="save-question-btn"
-                className="bg-[#3A7D86] hover:bg-[#2C6169]"
+                className="bg-[#3A7D86] hover:bg-[#2C6169] text-white"
               >
                 {editingQuestion ? "حفظ التعديلات" : "إضافة السؤال"}
               </Button>

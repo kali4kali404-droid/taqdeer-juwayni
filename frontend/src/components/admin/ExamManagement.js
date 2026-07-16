@@ -52,6 +52,7 @@ const ExamManagement = () => {
     title: "",
     description: "",
     instructions: "",
+    image: "", // إضافة حقل صورة غلاف الاختبار 🚀
     sections: [
       { section_number: 1, title: "القسم الأول - كمي", duration_minutes: 20 },
       { section_number: 2, title: "القسم الثاني - لفظي", duration_minutes: 20 },
@@ -68,13 +69,34 @@ const ExamManagement = () => {
   const fetchExams = async () => {
     try {
       const response = await getExams();
-      setExams(response.data);
+      setExams(response.data || []);
     } catch (error) {
       console.error("Error fetching exams:", error);
       toast.error("حدث خطأ في تحميل الاختبارات");
     } finally {
       setLoading(false);
     }
+  };
+
+  // معالجة قراءة وتحويل ملف صورة الغلاف لـ Base64
+  const handleImageUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("حجم الصورة كبير جداً، يرجى رفع صورة غلاف أقل من 2 ميغابايت");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setFormData((prev) => ({ ...prev, image: reader.result }));
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemoveImage = () => {
+    setFormData((prev) => ({ ...prev, image: "" }));
   };
 
   const handleOpenForm = (exam = null) => {
@@ -84,6 +106,7 @@ const ExamManagement = () => {
         title: exam.title,
         description: exam.description || "",
         instructions: exam.instructions || "",
+        image: exam.image || "", // قراءة قيمة الغلاف عند التعديل
         sections: exam.sections || formData.sections,
       });
     } else {
@@ -92,6 +115,7 @@ const ExamManagement = () => {
         title: "",
         description: "",
         instructions: "",
+        image: "",
         sections: [
           { section_number: 1, title: "القسم الأول - كمي", duration_minutes: 20 },
           { section_number: 2, title: "القسم الثاني - لفظي", duration_minutes: 20 },
@@ -123,7 +147,7 @@ const ExamManagement = () => {
   };
 
   const handleDelete = async (examId) => {
-    if (!window.confirm("هل أنت متأكد من حذف هذا الاختبار؟")) return;
+    if (!window.confirm("هل أنت متأكد من حذف هذا الاختبار بالكامل؟ سيتم حذف بياناته وسجلاته.")) return;
     try {
       await deleteExam(examId);
       toast.success("تم حذف الاختبار بنجاح");
@@ -137,7 +161,7 @@ const ExamManagement = () => {
   const handlePublish = async (examId) => {
     try {
       await publishExam(examId);
-      toast.success("تم نشر الاختبار بنجاح");
+      toast.success("تم تشغيل ونشر الاختبار للطلاب بنجاح 🟢");
       fetchExams();
     } catch (error) {
       console.error("Error publishing exam:", error);
@@ -148,7 +172,7 @@ const ExamManagement = () => {
   const handleClose = async (examId) => {
     try {
       await closeExam(examId);
-      toast.success("تم إغلاق الاختبار بنجاح");
+      toast.success("تم إيقاف وإخفاء الاختبار عن الطلاب بنجاح 🔴");
       fetchExams();
     } catch (error) {
       console.error("Error closing exam:", error);
@@ -179,16 +203,16 @@ const ExamManagement = () => {
   const getStatusBadge = (status) => {
     switch (status) {
       case "published":
-        return <Badge className="bg-[#D1FAE5] text-[#10B981]">منشور</Badge>;
+        return <Badge className="bg-[#D1FAE5] text-[#10B981]">منشور ومتاح للطلاب 🟢</Badge>;
       case "closed":
-        return <Badge className="bg-[#FEE2E2] text-[#EF4444]">مغلق</Badge>;
+        return <Badge className="bg-[#FEE2E2] text-[#EF4444]">مغلق ومخفي 🔴</Badge>;
       default:
-        return <Badge className="bg-[#F3F4F6] text-[#4B5563]">مسودة</Badge>;
+        return <Badge className="bg-[#F3F4F6] text-[#4B5563]">مسودة (مخفي)</Badge>;
     }
   };
 
   return (
-    <div className="animate-fade-in">
+    <div className="animate-fade-in" dir="rtl">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-[#1F2937]">إدارة الاختبارات</h1>
@@ -197,7 +221,7 @@ const ExamManagement = () => {
         <Button
           data-testid="create-exam-btn"
           onClick={() => handleOpenForm()}
-          className="bg-[#3A7D86] hover:bg-[#2C6169]"
+          className="bg-[#3A7D86] hover:bg-[#2C6169] text-white"
         >
           <Plus className="w-5 h-5 ml-2" />
           إنشاء اختبار جديد
@@ -213,7 +237,7 @@ const ExamManagement = () => {
             <p className="text-[#4B5563]">لا توجد اختبارات حالياً</p>
             <Button
               onClick={() => handleOpenForm()}
-              className="mt-4 bg-[#3A7D86] hover:bg-[#2C6169]"
+              className="mt-4 bg-[#3A7D86] hover:bg-[#2C6169] text-white"
             >
               إنشاء أول اختبار
             </Button>
@@ -234,58 +258,69 @@ const ExamManagement = () => {
             <TableBody>
               {exams.map((exam) => (
                 <TableRow key={exam.id}>
-                  <TableCell className="font-medium">{exam.title}</TableCell>
+                  <TableCell className="font-semibold text-lg text-[#1F2937]">
+                    <div className="flex items-center gap-3">
+                      {/* عرض صورة مصغرة لغلاف الاختبار في الجدول إذا كانت موجودة 🚀 */}
+                      {exam.image && (
+                        <img
+                          src={exam.image}
+                          alt="غلاف الاختبار"
+                          className="h-10 w-16 object-cover rounded border bg-white shrink-0 shadow-sm"
+                        />
+                      )}
+                      <span>{exam.title}</span>
+                    </div>
+                  </TableCell>
                   <TableCell>{getStatusBadge(exam.status)}</TableCell>
                   <TableCell>{exam.sections?.length || 5} أقسام</TableCell>
                   <TableCell>
-                    {new Date(exam.created_at).toLocaleDateString("ar-SA")}
+                    {exam.created_at ? new Date(exam.created_at).toLocaleDateString("ar-SA") : "-"}
                   </TableCell>
                   <TableCell>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 justify-start">
+                      <Button
+                        data-testid={`toggle-exam-${exam.id}`}
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => exam.status === "published" ? handleClose(exam.id) : handlePublish(exam.id)}
+                        className={exam.status === "published" ? "text-[#EF4444] hover:bg-red-50" : "text-[#10B981] hover:bg-green-50"}
+                        title={exam.status === "published" ? "إيقاف الاختبار وإخفاؤه عن الطلاب" : "تشغيل ونشر الاختبار للطلاب"}
+                      >
+                        {exam.status === "published" ? (
+                          <Pause className="w-4 h-4 ml-1" />
+                        ) : (
+                          <Play className="w-4 h-4 ml-1" />
+                        )}
+                        {exam.status === "published" ? "إيقاف" : "تشغيل"}
+                      </Button>
+
                       <Button
                         data-testid={`edit-exam-${exam.id}`}
                         variant="ghost"
                         size="sm"
                         onClick={() => handleOpenForm(exam)}
+                        title="تعديل الاختبار"
                       >
                         <Pencil className="w-4 h-4" />
                       </Button>
+                      
                       <Button
                         data-testid={`time-settings-${exam.id}`}
                         variant="ghost"
                         size="sm"
                         onClick={() => handleOpenTimeSettings(exam)}
+                        title="إعدادات وقت الأقسام"
                       >
                         <Clock className="w-4 h-4" />
                       </Button>
-                      {exam.status === "draft" && (
-                        <Button
-                          data-testid={`publish-exam-${exam.id}`}
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handlePublish(exam.id)}
-                          className="text-[#10B981]"
-                        >
-                          <Play className="w-4 h-4" />
-                        </Button>
-                      )}
-                      {exam.status === "published" && (
-                        <Button
-                          data-testid={`close-exam-${exam.id}`}
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleClose(exam.id)}
-                          className="text-[#F59E0B]"
-                        >
-                          <Pause className="w-4 h-4" />
-                        </Button>
-                      )}
+                      
                       <Button
                         data-testid={`delete-exam-${exam.id}`}
                         variant="ghost"
                         size="sm"
                         onClick={() => handleDelete(exam.id)}
-                        className="text-[#EF4444]"
+                        className="text-[#EF4444] hover:bg-red-50"
+                        title="حذف الاختبار بالكامل"
                       >
                         <Trash2 className="w-4 h-4" />
                       </Button>
@@ -300,7 +335,7 @@ const ExamManagement = () => {
 
       {/* Create/Edit Exam Dialog */}
       <Dialog open={showForm} onOpenChange={setShowForm}>
-        <DialogContent className="max-w-2xl" dir="rtl">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" dir="rtl">
           <DialogHeader>
             <DialogTitle>
               {editingExam ? "تعديل الاختبار" : "إنشاء اختبار جديد"}
@@ -347,6 +382,38 @@ const ExamManagement = () => {
                   rows={4}
                 />
               </div>
+
+              {/* قسم رفع صورة غلاف الاختبار الجديد التفاعلي 🖼️ */}
+              <div className="space-y-2">
+                <Label>صورة غلاف الاختبار (اختياري)</Label>
+                <div className="flex items-center gap-4 border p-4 rounded-lg bg-gray-50">
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                    className="flex-1 cursor-pointer bg-white"
+                  />
+                  {formData.image && (
+                    <div className="relative shrink-0 border rounded bg-white p-1">
+                      <img
+                        src={formData.image}
+                        alt="معاينة الغلاف"
+                        className="h-16 w-24 object-cover rounded shadow-sm"
+                      />
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="icon"
+                        onClick={handleRemoveImage}
+                        className="absolute -top-2 -right-2 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs"
+                      >
+                        ×
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </div>
+
               <div className="space-y-2">
                 <Label>أقسام الاختبار</Label>
                 <div className="space-y-2">
@@ -388,7 +455,7 @@ const ExamManagement = () => {
                 </div>
               </div>
             </div>
-            <DialogFooter className="gap-2">
+            <DialogFooter className="gap-2 justify-start">
               <Button
                 type="button"
                 variant="outline"
@@ -399,7 +466,7 @@ const ExamManagement = () => {
               <Button
                 type="submit"
                 data-testid="save-exam-btn"
-                className="bg-[#3A7D86] hover:bg-[#2C6169]"
+                className="bg-[#3A7D86] hover:bg-[#2C6169] text-white"
               >
                 {editingExam ? "حفظ التعديلات" : "إنشاء الاختبار"}
               </Button>
@@ -413,7 +480,7 @@ const ExamManagement = () => {
         <DialogContent dir="rtl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Settings className="w-5 h-5" />
+              <Settings className="w-5 h-5 ml-1" />
               إعدادات الوقت - {selectedExam?.title}
             </DialogTitle>
           </DialogHeader>
@@ -447,10 +514,10 @@ const ExamManagement = () => {
               </div>
             ))}
           </div>
-          <DialogFooter>
+          <DialogFooter className="justify-start">
             <Button
               onClick={() => setShowTimeSettings(false)}
-              className="bg-[#3A7D86] hover:bg-[#2C6169]"
+              className="bg-[#3A7D86] hover:bg-[#2C6169] text-white"
             >
               تم
             </Button>

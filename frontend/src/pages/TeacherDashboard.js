@@ -168,7 +168,7 @@ const TeacherDashboard = () => {
             <GraduationCap className="w-6 h-6" />
           </div>
           <div>
-            <h2 className="font-bold text-lg">تقدير</h2>
+            <h2 className="font-bold text-lg">منصة ثانوية الإمام الجويني</h2>
             <p className="text-sm opacity-80">لوحة المعلم</p>
           </div>
         </div>

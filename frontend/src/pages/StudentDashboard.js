@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { getExams, getStudentExams, getMyResults } from "@/lib/api";
+import { getExams, getStudentExams } from "@/lib/api"; // تم استبعاد جلب النتائج لحماية السرية
 import {
   GraduationCap,
   LogOut,
@@ -13,7 +13,6 @@ import {
   Clock,
   CheckCircle,
   Play,
-  Trophy,
 } from "lucide-react";
 
 const StudentDashboard = () => {
@@ -21,7 +20,6 @@ const StudentDashboard = () => {
   const navigate = useNavigate();
   const [exams, setExams] = useState([]);
   const [myExams, setMyExams] = useState([]);
-  const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -30,14 +28,13 @@ const StudentDashboard = () => {
 
   const fetchData = async () => {
     try {
-      const [examsRes, myExamsRes, resultsRes] = await Promise.all([
+      // جلب الامتحانات وجلسات الطالب فقط بدون جلب الدرجات
+      const [examsRes, myExamsRes] = await Promise.all([
         getExams(),
         getStudentExams(),
-        getMyResults(),
       ]);
-      setExams(examsRes.data);
-      setMyExams(myExamsRes.data);
-      setResults(resultsRes.data);
+      setExams(examsRes.data || []);
+      setMyExams(myExamsRes.data || []);
     } catch (error) {
       console.error("Error fetching data:", error);
       toast.error("حدث خطأ في تحميل البيانات");
@@ -80,7 +77,7 @@ const StudentDashboard = () => {
   const inProgressExams = myExams.filter((e) => e.status === "in_progress");
 
   return (
-    <div className="min-h-screen bg-[#F9FAFB]">
+    <div className="min-h-screen bg-[#F9FAFB]" dir="rtl">
       {/* Header */}
       <header className="bg-[#3A7D86] text-white py-4 px-6">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
@@ -89,12 +86,12 @@ const StudentDashboard = () => {
               <GraduationCap className="w-6 h-6" />
             </div>
             <div>
-              <h1 className="font-bold text-lg">تقدير</h1>
-              <p className="text-sm opacity-80">ثانوية الإمام الجويني</p>
+              <h1 className="font-bold text-lg">منصة ثانوية الإمام الجويني الإلكترونية</h1>
+              <p className="text-sm opacity-80">لاختبارات - القدرات - التحصيلي</p>
             </div>
           </div>
           <div className="flex items-center gap-4">
-            <div className="text-left">
+            <div className="text-right">
               <p className="font-medium">{user?.full_name}</p>
               <p className="text-sm opacity-80">طالب</p>
             </div>
@@ -242,43 +239,6 @@ const StudentDashboard = () => {
             </div>
           )}
         </section>
-
-        {/* Results */}
-        {results.length > 0 && (
-          <section>
-            <h3 className="text-xl font-bold text-[#1F2937] mb-4">نتائجي</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {results.map((result) => {
-                const exam = exams.find((e) => e.id === result.exam_id);
-                return (
-                  <Card key={result.id} className="border-r-4 border-r-[#10B981]">
-                    <CardContent className="pt-6">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h4 className="font-semibold text-[#1F2937]">
-                            {exam?.title || "اختبار"}
-                          </h4>
-                          <p className="text-sm text-[#4B5563]">
-                            تاريخ الإكمال:{" "}
-                            {new Date(result.completed_at).toLocaleDateString("ar-SA")}
-                          </p>
-                        </div>
-                        <div className="text-center">
-                          <div className="w-16 h-16 rounded-full bg-[#D1FAE5] flex items-center justify-center">
-                            <Trophy className="w-8 h-8 text-[#10B981]" />
-                          </div>
-                          <p className="text-2xl font-bold text-[#10B981] mt-2">
-                            {result.score?.toFixed(0)}%
-                          </p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
-          </section>
-        )}
       </main>
     </div>
   );

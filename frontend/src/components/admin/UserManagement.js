@@ -28,7 +28,7 @@ import {
 } from "@/components/ui/table";
 import { toast } from "sonner";
 import { getUsers, createUser, updateUser, deleteUser } from "@/lib/api";
-import { Plus, Pencil, Trash2, Users, UserCheck, UserX } from "lucide-react";
+import { Plus, Pencil, Trash2, Users, UserCheck } from "lucide-react";
 
 const UserManagement = () => {
   const [users, setUsers] = useState([]);
@@ -49,7 +49,7 @@ const UserManagement = () => {
   const fetchUsers = async () => {
     try {
       const response = await getUsers();
-      setUsers(response.data);
+      setUsers(response.data || []);
     } catch (error) {
       console.error("Error fetching users:", error);
       toast.error("حدث خطأ في تحميل المستخدمين");
@@ -124,23 +124,12 @@ const UserManagement = () => {
     }
   };
 
-  const getRoleLabel = (role) => {
-    switch (role) {
-      case "admin":
-        return "مشرف";
-      case "teacher":
-        return "معلم";
-      default:
-        return "طالب";
-    }
-  };
-
   const admins = users.filter((u) => u.role === "admin");
   const teachers = users.filter((u) => u.role === "teacher");
   const students = users.filter((u) => u.role === "student");
 
   return (
-    <div className="animate-fade-in">
+    <div className="animate-fade-in" dir="rtl">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-[#1F2937]">إدارة المستخدمين</h1>
@@ -149,7 +138,7 @@ const UserManagement = () => {
         <Button
           data-testid="create-user-btn"
           onClick={() => handleOpenForm()}
-          className="bg-[#3A7D86] hover:bg-[#2C6169]"
+          className="bg-[#3A7D86] hover:bg-[#2C6169] text-white"
         >
           <Plus className="w-5 h-5 ml-2" />
           إضافة مستخدم جديد
@@ -208,7 +197,7 @@ const UserManagement = () => {
             <p className="text-[#4B5563]">لا يوجد مستخدمون حالياً</p>
             <Button
               onClick={() => handleOpenForm()}
-              className="mt-4 bg-[#3A7D86] hover:bg-[#2C6169]"
+              className="mt-4 bg-[#3A7D86] hover:bg-[#2C6169] text-white"
             >
               إضافة أول مستخدم
             </Button>
@@ -234,14 +223,16 @@ const UserManagement = () => {
                   <TableCell>{user.username}</TableCell>
                   <TableCell>{getRoleBadge(user.role)}</TableCell>
                   <TableCell>
-                    {user.is_active ? (
+                    {/* تجنب الأخطاء في حال عدم وجود حقل is_active في قاعدة البيانات وافتراض أنه نشط بشكل افتراضي */}
+                    {user.is_active !== false ? (
                       <Badge className="bg-[#D1FAE5] text-[#10B981]">نشط</Badge>
                     ) : (
                       <Badge className="bg-[#FEE2E2] text-[#EF4444]">معطل</Badge>
                     )}
                   </TableCell>
                   <TableCell>
-                    {new Date(user.created_at).toLocaleDateString("ar-SA")}
+                    {/* تجنب أخطاء التاريخ البرمجية */}
+                    {user.created_at ? new Date(user.created_at).toLocaleDateString("ar-SA") : "-"}
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
@@ -344,7 +335,7 @@ const UserManagement = () => {
                 </Select>
               </div>
             </div>
-            <DialogFooter className="gap-2">
+            <DialogFooter className="gap-2 justify-start">
               <Button
                 type="button"
                 variant="outline"
@@ -355,7 +346,7 @@ const UserManagement = () => {
               <Button
                 type="submit"
                 data-testid="save-user-btn"
-                className="bg-[#3A7D86] hover:bg-[#2C6169]"
+                className="bg-[#3A7D86] hover:bg-[#2C6169] text-white"
               >
                 {editingUser ? "حفظ التعديلات" : "إضافة المستخدم"}
               </Button>
