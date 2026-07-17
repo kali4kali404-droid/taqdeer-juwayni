@@ -1164,15 +1164,15 @@ async def super_reset(user=Depends(get_current_user)):
     return {"message": "✅ تم تصفير لوحة التحكم والنظام بالكامل بنجاح! تم حذف كافة الدفعات عدا حسابك الإشرافي الرئيسي."}
 
 
-# ================== INIT ADMIN (فرض تهيئة حساب المشرف الرئيسي n.vf11) ==================
+# ================== INIT ADMIN (حساب المشرف الرئيسي الآمن n.vf11) ==================
 @api_router.post("/init-admin")
 async def init_admin():
-    # 1. حذف وتصفير أي حساب مشرف قديم أو تالف في قاعدة البيانات لضمان النظافة التامة
-    await db.users.delete_many({"role": "admin"})
-    await db.users.delete_many({"username": "admin"})
-    await db.users.delete_many({"username": "n.vf11"})
+    # 🚀 التعديل الوقائي الحاسم والآمن 100%: نتحقق أولاً إن كان موجوداً، لمنع حظر المشرفين الآخرين!
+    existing_admin = await db.users.find_one({"username": "n.vf11"})
+    if existing_admin:
+        return {"message": "المشرف الرئيسي موجود مسبقاً وجاهز للاستخدام"}
 
-    # 2. إنشاء حسابك الجديد المضمون والقوي 100% للأبد
+    # نقوم بإنشائه فقط في حال لم يكن موجوداً من قبل وبدون حذف المشرفين الآخرين
     await db.users.insert_one({
         "id": str(uuid.uuid4()),
         "username": "n.vf11",
@@ -1182,7 +1182,7 @@ async def init_admin():
         "is_active": True,
         "created_at": datetime.now(timezone.utc).isoformat()
     })
-    return {"message": "✅ تم إعادة تهيئة وإنشاء حساب المشرف الرئيسي الدائم بنجاح", "username": "n.vf11", "password": "Nn@100100"}
+    return {"message": "✅ تم تهيئة وإنشاء حساب المشرف الرئيسي الدائم بنجاح", "username": "n.vf11", "password": "Nn@100100"}
 
 # ================== ROOT ==================
 @api_router.get("/")
