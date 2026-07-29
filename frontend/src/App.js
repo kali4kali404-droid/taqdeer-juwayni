@@ -3,7 +3,9 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 
+import LandingPage from "@/pages/LandingPage"; // استيراد الصفحة التعريفية الجديدة لتفتح أولاً
 import LoginPage from "@/pages/LoginPage";
+import StaffLoginPage from "@/pages/StaffLoginPage"; // 🚀 استيراد صفحة المشرفين والمعلمين المنفصلة
 import AdminDashboard from "@/pages/AdminDashboard";
 import TeacherDashboard from "@/pages/TeacherDashboard";
 import StudentDashboard from "@/pages/StudentDashboard";
@@ -60,8 +62,14 @@ function App() {
       <div dir="rtl">
         <BrowserRouter>
           <Routes>
-            <Route path="/" element={<RoleBasedRedirect />} />
+            {/* جعل المسار الرئيسي للموقع يفتح الصفحة الترحيبية والتعريفية لثانوية الإمام الجويني */}
+            <Route path="/" element={<LandingPage />} />
+            
+            {/* بوابة الطلاب المستقلة */}
             <Route path="/login" element={<LoginPage />} />
+
+            {/* 🚀 بوابة المعلمين والمشرفين المنفصلة والآمنة تماماً */}
+            <Route path="/staff-login" element={<StaffLoginPage />} />
 
             {/* ADMIN */}
             <Route
