@@ -36,6 +36,7 @@ app = FastAPI(title="منصة ثانوية الإمام الجويني الإل�
 app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,
+    allow_origin_regex=r"https://.*\.vercel\.app",  # يسمح لأي رابط معاينة أو رابط أساسي من Vercel تلقائياً
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
