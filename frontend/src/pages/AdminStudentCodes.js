@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom"; // استيراد موجه التنقل لزر العودة
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -20,7 +21,7 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Key, RefreshCw, Power } from "lucide-react";
+import { Plus, Pencil, Trash2, Key, RefreshCw, Power, ArrowRight } from "lucide-react"; // استيراد سهم العودة
 import axios from "axios";
 
 // إنشاء اتصال مستقل ومباشر بالباكند لتفادي أي نقص في ملف api.js
@@ -46,6 +47,7 @@ const toggleStudentCode = (id) => API.put(`/admin/student-codes/${id}/toggle`);
 const deleteStudentCode = (id) => API.delete(`/admin/student-codes/${id}`);
 
 export default function AdminStudentCodes() {
+  const navigate = useNavigate(); // دالة التنقل والتوجيه
   const [codes, setCodes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -142,10 +144,23 @@ export default function AdminStudentCodes() {
 
   return (
     <div className="animate-fade-in" dir="rtl" style={{ padding: "20px" }}>
-      <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4 text-right">
+      <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4 text-right border-b pb-4">
         <div>
-          <h1 className="text-2xl font-bold text-[#1F2937]">إدارة أكواد الدخول للطلاب</h1>
-          <p className="text-[#4B5563] text-sm mt-1">توليد الأكواد تلقائياً، كتابة أكواد مخصصة يدوياً، وتفعيلها أو إيقافها</p>
+          {/* رأس الصفحة مع زر العودة للرئيسية التفاعلي ↩️ */}
+          <div className="flex items-center gap-3">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate("/admin")}
+              className="border-gray-200 text-gray-600 hover:bg-gray-100 p-2 h-9 ml-2"
+              title="عودة للوحة التحكم الرئيسية"
+            >
+              <ArrowRight className="w-5 h-5 ml-1" />
+              عودة للرئيسية
+            </Button>
+            <h1 className="text-2xl font-bold text-[#1F2937]">إدارة أكواد الدخول للطلاب</h1>
+          </div>
+          <p className="text-[#4B5563] text-sm mt-1 mr-14">توليد الأكواد تلقائياً، كتابة أكواد مخصصة يدوياً، وتفعيلها أو إيقافها</p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={fetchCodes} disabled={loading} className="text-gray-700">
